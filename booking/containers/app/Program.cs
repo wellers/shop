@@ -1,15 +1,15 @@
-﻿using Basket;
+﻿using Booking;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var configuration = new ConfigurationBuilder()
-    .AddJsonFile($"appsettings.json")
-    .Build();
+builder.Configuration.AddJsonFile($"appsettings.json").Build();
+
+builder.Services.AddSingleton<MessageQueueService>();
 
 var app = builder.Build();
 
-var messageQueue = new MessageQueueService(configuration);
-messageQueue.ConsumeQueue();
+var rabbitMQService = app.Services.GetRequiredService<MessageQueueService>();
+rabbitMQService.StartListening();
 
 app.MapGet("/status", () => Results.Json(new { start = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds() }));
 

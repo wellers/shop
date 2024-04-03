@@ -2,13 +2,13 @@
 
 namespace Basket
 {
-    public class RedisService(IConfigurationRoot configurationRoot)
+    public class RedisService(IConfiguration configuration)
     {
-        private readonly IConfigurationRoot _configurationRoot = configurationRoot;
+        private readonly IConfiguration _configuration = configuration;
 
         public IDatabase GetDatabase()
         {
-            var redisHostname = _configurationRoot.GetValue<string>("RedisHostname");
+            var redisHostname = _configuration.GetValue<string>("RedisHostname");
 
             if (redisHostname == null)
                 throw new ApplicationException("redisHostname cannot be null.");

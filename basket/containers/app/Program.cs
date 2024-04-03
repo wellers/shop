@@ -2,13 +2,14 @@
 using Newtonsoft.Json;
 
 var builder = WebApplication.CreateBuilder(args);
-var configuration = new ConfigurationBuilder()
-    .AddJsonFile($"appsettings.json")
-    .Build();
+builder.Configuration.AddJsonFile($"appsettings.json").Build();
+
+builder.Services.AddSingleton<RedisService>();
+builder.Services.AddSingleton<MessageQueueService>();
 
 var app = builder.Build();
 
-var redis = new RedisService(configuration);
+var redis = app.Services.GetRequiredService<RedisService>();
 var db = redis.GetDatabase();
 
 app.MapGet("/add", async (Guid basketId, int movieId) =>
@@ -28,11 +29,15 @@ app.MapGet("/add", async (Guid basketId, int movieId) =>
         }        
     }
 
-    movies.Add(movieId);
+	movies.Add(movieId);
 
-    await db.StringSetAsync(basketId.ToString(), JsonConvert.SerializeObject(movies));
+    var success = await db.StringSetAsync(basketId.ToString(), JsonConvert.SerializeObject(movies));
 
-    return new { Success = true, Message = $"{movies.Count} item(s) added to basket." };
+    var message = success 
+        ? $"{movies.Count} item(s) added to basket." 
+        : "Failed to add item to basket.";
+
+	return new { Success = success, Message = message };
 });
 
 app.MapGet("/purchase", async (Guid basketId) =>
@@ -40,8 +45,10 @@ app.MapGet("/purchase", async (Guid basketId) =>
     var basket = await db.StringGetAsync(basketId.ToString());
 
     var message = basket.ToString();
-    var messageQueue = new MessageQueueService(configuration);
-    messageQueue.Publish(message);
+	var rabbitMQService = app.Services.GetRequiredService<MessageQueueService>();
+	rabbitMQService.Publish(message);
+	
+    return new { Success = true, Message = $"Basket '{basketId}' purchased." };
 });
 
 app.MapGet("/status", () => Results.Json(new { start = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds() }));

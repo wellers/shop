@@ -1,32 +1,43 @@
-﻿using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
+﻿using RabbitMQ.Client.Events;
+using RabbitMQ.Client;
 using System.Text;
 
-namespace Basket
+namespace Booking
 {
-    public class MessageQueueService(IConfigurationRoot configurationRoot)
-    {
-        private readonly IConfigurationRoot _configurationRoot = configurationRoot;
+	public class MessageQueueService
+	{
+		private readonly IConnection _connection;
+		private readonly IModel _channel;
 
-        public void ConsumeQueue()
-        {
-            var connectionFactory = new ConnectionFactory();
-            _configurationRoot.GetSection("RabbitMqConnection").Bind(connectionFactory);
+		public MessageQueueService(IConfiguration configuration)
+		{
+			var connectionFactory = new ConnectionFactory();
+			configuration.GetSection("RabbitMqConnection").Bind(connectionFactory);
 
-            using var connection = connectionFactory.CreateConnection();
-            using var channel = connection.CreateModel();
-           
-            var consumer = new EventingBasicConsumer(channel);
+			_connection = connectionFactory.CreateConnection();
+			_channel = _connection.CreateModel();
 
-            consumer.Received += (model, args) =>
-            {
-                var body = args.Body.ToArray();
-                var message = Encoding.UTF8.GetString(body);
+			_channel.QueueDeclare(queue: "bookings", durable: true, exclusive: false, autoDelete: false);
+		}
 
-                Console.WriteLine(" [x] Received {0}", message);                
-            };
+		public void StartListening()
+		{
+			var consumer = new EventingBasicConsumer(_channel);
+			consumer.Received += (model, args) =>
+			{
+				var body = args.Body.ToArray();
+				var message = Encoding.UTF8.GetString(body);
 
-            channel.BasicConsume(queue: "bookings", autoAck: true, consumer: consumer);
-        }
-    }
+				Console.WriteLine(" [x] Received {0}", message);
+			};
+
+			_channel.BasicConsume(queue: "bookings", autoAck: true, consumer: consumer);
+		}
+
+		public void Dispose()
+		{
+			_channel.Dispose();
+			_connection.Dispose();
+		}
+	}
 }
