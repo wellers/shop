@@ -1,0 +1,20 @@
+{{ $name := "rabbitmq" }}
+{{ $fullName := printf "%s-%s" .Release.Name $name }}
+{{ $image := printf "%s-%s" .Chart.Name $name }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullName }}-service
+spec:
+  selector:
+    name: {{ $fullName }}
+  type: NodePort
+  ports:
+    - name: http
+      protocol: TCP
+      port: 15672    
+      nodePort: 15672
+    - name: amqp
+      protocol: TCP
+      port: 5672
+      nodePort: 5672

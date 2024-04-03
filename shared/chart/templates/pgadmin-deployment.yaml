@@ -1,0 +1,34 @@
+{{ $name := "pgadmin" }}
+{{ $fullName := printf "%s-%s" .Release.Name $name }}
+{{ $image := printf "%s-%s" .Chart.Name $name }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName }}
+spec:
+  selector:
+    matchLabels:
+      name: {{ $fullName }}
+  template:
+    metadata:
+      labels:
+        name: {{ $fullName }}
+      annotations:
+        checksum: {{ index $image }}        
+    spec:
+      containers:
+        - name:  {{ $name }}
+          image: {{ $image }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          ports:
+            - containerPort: 80
+              name: http    
+          env:
+            - name: PGADMIN_DEFAULT_EMAIL
+              value: {{ .Values.PGADMIN_DEFAULT_EMAIL }}
+            - name: PGADMIN_DEFAULT_PASSWORD
+              value: {{ .Values.PGADMIN_DEFAULT_PASSWORD }}
+          lifecycle:
+            preStop:
+              exec:
+                command : ["/bin/sh" , "-c", "sleep 60;"]      

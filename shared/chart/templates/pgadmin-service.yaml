@@ -1,0 +1,16 @@
+{{ $name := "pgadmin" }}
+{{ $fullName := printf "%s-%s" .Release.Name $name }}
+{{ $image := printf "%s-%s" .Chart.Name $name }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullName }}-service
+spec:
+  selector:
+    name: {{ $fullName }}
+  type: NodePort
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80    
+      nodePort: 82

@@ -1,0 +1,31 @@
+{{ $name := "rabbitmq" }}
+{{ $fullName := printf "%s-%s" .Release.Name $name }}
+{{ $image := printf "%s-%s" .Chart.Name $name }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName }}
+spec:
+  selector:
+    matchLabels:
+      name: {{ $fullName }}
+  template:
+    metadata:
+      labels:
+        name: {{ $fullName }}
+      annotations:
+        checksum: {{ index $image }}        
+    spec:
+      containers:
+        - name:  {{ $name }}
+          image: {{ $image }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          ports:
+            - containerPort: 15672
+              name: http
+            - containerPort: 5672
+              name: amqp          
+          lifecycle:
+            preStop:
+              exec:
+                command : ["/bin/sh" , "-c", "sleep 60;"]      

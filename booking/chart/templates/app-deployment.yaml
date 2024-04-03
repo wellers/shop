@@ -1,0 +1,43 @@
+{{ $name := "app" }}
+{{ $fullName := printf "%s-%s" .Release.Name $name }}
+{{ $image := printf "%s-%s" .Chart.Name $name }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName }}
+spec:
+  selector:
+    matchLabels:
+      name: {{ $fullName }}
+  template:
+    metadata:
+      labels:
+        name: {{ $fullName }}
+      annotations:
+        checksum: {{ index $image }}        
+    spec:
+      initContainers:
+        - name: rabbitmq-ready
+          image: busybox
+          command: ['sh', '-c', 'until nslookup shared-rabbitmq-service.default.svc.cluster.local; do echo waiting for rabbitmq connection; sleep 2; done;']  
+      containers:
+        - name:  {{ $name }}
+          image: {{ $image }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          ports:
+            - containerPort: 80
+              name: http
+          env:
+            - name: ASPNETCORE_HTTP_PORTS 
+              value: "80"
+          readinessProbe:
+            httpGet:
+              path: /status/
+              port: 80
+            failureThreshold: 24
+            periodSeconds: 5
+            timeoutSeconds: 1  
+          lifecycle:
+            preStop:
+              exec:
+                command : ["/bin/sh" , "-c", "sleep 60;"]

@@ -1,0 +1,3 @@
+imagePullPolicy: IfNotPresent
+PGADMIN_DEFAULT_EMAIL: paulwelbourne@gmail.com
+PGADMIN_DEFAULT_PASSWORD: password

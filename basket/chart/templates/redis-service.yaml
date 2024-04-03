@@ -1,0 +1,16 @@
+{{ $name := "redis" }}
+{{ $fullName := printf "%s-%s" .Release.Name $name }}
+{{ $image := printf "%s-%s" .Chart.Name $name }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullName }}-service
+spec:
+  selector:
+    name: {{ $fullName }}
+  type: NodePort
+  ports:
+    - name: http
+      protocol: TCP
+      port: 6379    
+      nodePort: 6379

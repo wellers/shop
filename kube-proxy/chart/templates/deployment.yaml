@@ -1,0 +1,43 @@
+{{ $name := "server" }}
+{{ $fullName := printf "%s-%s" .Release.Name $name }}
+{{ $image := printf "%s-%s" .Chart.Name $name }}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ $fullName }}
+  template:
+    metadata:
+      annotations:
+        checksum: {{ index $image }}
+      labels:
+        app: {{ $fullName }}
+    spec:
+      containers:
+        - name: {{ $name }}
+          image: {{ $image }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          lifecycle:
+            preStop:
+              exec:
+                # normally kubernetes sends sigterm, but that triggers a hard-stop in nginx
+                # we need to sleep so that the pod is evicted from the service, send the graceful signal
+                # then we while loop for all nginx workers to be closed, kill -0 doesn't send a signal, it just checks
+                # for process existence
+                command: ["/bin/sh","-c","sleep 5 && nginx -s quit; while killall -0 nginx; do sleep 1; done"]
+          # ensure that the pod is ready to receive requests before it's added to the service
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            timeoutSeconds: 4
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 50m
