@@ -17,8 +17,7 @@ var connection = connectionFactory.CreateConnection();
 
 using var channel = connection.CreateModel();
 
-channel.QueueDeclare(queue: "bookings", durable: true);
-
+channel.QueueDeclare(queue: "bookings", durable: true, exclusive: false);
 var consumer = new EventingBasicConsumer(channel);
 
 consumer.Received += (model, args) =>
@@ -27,9 +26,10 @@ consumer.Received += (model, args) =>
     var message = Encoding.UTF8.GetString(body);
     
     Console.WriteLine(" [x] Received {0}", message);
+    channel.BasicAck(args.DeliveryTag, false);
 };
 
-channel.BasicConsume(queue: "booking_queue", autoAck: false, consumer: consumer);
+channel.BasicConsume(queue: "bookings", autoAck: false, consumer: consumer);
 
 app.MapGet("/status", () => Results.Json(new { start = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds() }));
 

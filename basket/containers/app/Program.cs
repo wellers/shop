@@ -51,8 +51,13 @@ app.MapGet("/purchase", async (Guid basketId) =>
 
     using var channel = connection.CreateModel();
 
-    channel.QueueDeclare(queue: "bookings", durable: true);
-    channel.BasicPublish(exchange: "booking", routingKey: "booking", null, body);
+    channel.ExchangeDeclare(exchange: "bookings", type: "direct", durable: true);
+    channel.QueueDeclare(queue: "bookings", durable: true, exclusive: false);    
+    channel.QueueBind(queue: "bookings", exchange: "bookings", routingKey: "bookings");
+    channel.BasicPublish(exchange: "bookings", routingKey: "bookings", null, body);
+
+    channel.Close();
+    connection.Close();
 });
 
 app.MapGet("/status", () => Results.Json(new { start = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds() }));
