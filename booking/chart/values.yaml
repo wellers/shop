@@ -1,1 +1,3 @@
 imagePullPolicy: IfNotPresent
+POSTGRES_PASSWORD: password
+PGDATA: /var/lib/postgresql/data/pgdata
