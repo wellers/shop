@@ -1,0 +1,37 @@
+{{ $name := "postgres" }}
+{{ $fullName := printf "%s-%s" .Release.Name $name }}
+{{ $image := printf "%s-%s" .Chart.Name $name }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName }}
+spec:
+  selector:
+    matchLabels:
+      name: {{ $fullName }}
+  template:
+    metadata:
+      labels:
+        name: {{ $fullName }}
+      annotations:
+        checksum: {{ index $image }}
+    spec:
+      containers:
+        - name:  {{ $name }}
+          image: {{ $image }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          env:
+            - name: POSTGRES_PASSWORD
+              value: {{ .Values.POSTGRES_PASSWORD }}
+            - name: PGDATA
+              value: {{ .Values.PGDATA }}
+      volumes:
+        - name: data
+          hostPath:
+            path: /var/lib/postgresql/data
+            type: DirectoryOrCreate
