@@ -1,7 +1,5 @@
-﻿using Newtonsoft.Json;
-using RabbitMQ.Client;
-using StackExchange.Redis;
-using System.Text;
+﻿using Basket;
+using Newtonsoft.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = new ConfigurationBuilder()
@@ -10,10 +8,8 @@ var configuration = new ConfigurationBuilder()
 
 var app = builder.Build();
 
-var redisHostname = configuration.GetValue<string>("RedisHostname");
-
-ConnectionMultiplexer redis = ConnectionMultiplexer.Connect(redisHostname);
-IDatabase db = redis.GetDatabase();
+var redis = new RedisService(configuration);
+var db = redis.GetDatabase();
 
 app.MapGet("/add", async (Guid basketId, int movieId) =>
 {
@@ -43,21 +39,9 @@ app.MapGet("/purchase", async (Guid basketId) =>
 {
     var basket = await db.StringGetAsync(basketId.ToString());
 
-    var body = Encoding.UTF8.GetBytes(basket.ToString());
-    var connectionFactory = new ConnectionFactory();
-    configuration.GetSection("RabbitMqConnection").Bind(connectionFactory);
-
-    var connection = connectionFactory.CreateConnection();
-
-    using var channel = connection.CreateModel();
-
-    channel.ExchangeDeclare(exchange: "bookings", type: "direct", durable: true);
-    channel.QueueDeclare(queue: "bookings", durable: true, exclusive: false);    
-    channel.QueueBind(queue: "bookings", exchange: "bookings", routingKey: "bookings");
-    channel.BasicPublish(exchange: "bookings", routingKey: "bookings", null, body);
-
-    channel.Close();
-    connection.Close();
+    var message = basket.ToString();
+    var messageQueue = new MessageQueueService(configuration);
+    messageQueue.Publish(message);
 });
 
 app.MapGet("/status", () => Results.Json(new { start = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds() }));

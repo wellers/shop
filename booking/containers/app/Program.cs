@@ -1,6 +1,4 @@
-﻿using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
-using System.Text;
+﻿using Basket;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,26 +8,8 @@ var configuration = new ConfigurationBuilder()
 
 var app = builder.Build();
 
-var connectionFactory = new ConnectionFactory();
-configuration.GetSection("RabbitMqConnection").Bind(connectionFactory);
-
-var connection = connectionFactory.CreateConnection();
-
-using var channel = connection.CreateModel();
-
-channel.QueueDeclare(queue: "bookings", durable: true, exclusive: false);
-var consumer = new EventingBasicConsumer(channel);
-
-consumer.Received += (model, args) =>
-{
-    var body = args.Body.ToArray();
-    var message = Encoding.UTF8.GetString(body);
-    
-    Console.WriteLine(" [x] Received {0}", message);
-    channel.BasicAck(args.DeliveryTag, false);
-};
-
-channel.BasicConsume(queue: "bookings", autoAck: false, consumer: consumer);
+var messageQueue = new MessageQueueService(configuration);
+messageQueue.ConsumeQueue();
 
 app.MapGet("/status", () => Results.Json(new { start = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds() }));
 
