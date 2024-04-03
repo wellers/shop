@@ -4,7 +4,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddJsonFile($"appsettings.json").Build();
 
-builder.Services.AddSingleton<MessageQueueService>();
+builder.Services
+	.AddSingleton<MessageQueueService>()
+	.AddDbContext<BookingDbContext>();
 
 var app = builder.Build();
 

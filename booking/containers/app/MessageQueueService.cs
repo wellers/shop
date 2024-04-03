@@ -1,16 +1,26 @@
-﻿using RabbitMQ.Client.Events;
+﻿using Newtonsoft.Json;
 using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
 using System.Text;
 
 namespace Booking
 {
+	public class BasketPurchase
+	{
+		public Guid BasketId { get; set; }
+		public List<int> Movies { get; set; } = [];
+	}
+
 	public class MessageQueueService
 	{
 		private readonly IConnection _connection;
 		private readonly IModel _channel;
+		private readonly BookingDbContext _context;
 
-		public MessageQueueService(IConfiguration configuration)
+		public MessageQueueService(BookingDbContext context, IConfiguration configuration)
 		{
+			_context = context;
+
 			var connectionFactory = new ConnectionFactory();
 			configuration.GetSection("RabbitMqConnection").Bind(connectionFactory);
 
@@ -23,10 +33,35 @@ namespace Booking
 		public void StartListening()
 		{
 			var consumer = new EventingBasicConsumer(_channel);
-			consumer.Received += (model, args) =>
+			consumer.Received += async (model, args) =>
 			{
 				var body = args.Body.ToArray();
 				var message = Encoding.UTF8.GetString(body);
+
+				BasketPurchase basketPurchase = null;
+				try
+				{
+					basketPurchase = JsonConvert.DeserializeObject<BasketPurchase>(message);
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine(ex.ToString());
+					return;
+				}
+
+				if (basketPurchase != null)
+					return;
+
+				var movies = _context.Movies.Where(m => basketPurchase.Movies.Contains(m.MovieId)).ToList();
+
+				await _context.Bookings.AddAsync(new Booking
+				{
+					BasketId = basketPurchase.BasketId,
+					Movies = movies,
+					BookingDate = DateTime.Now
+				});
+
+				await _context.SaveChangesAsync();
 
 				Console.WriteLine(" [x] Received {0}", message);
 			};

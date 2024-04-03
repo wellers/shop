@@ -41,12 +41,26 @@ app.MapGet("/add", async (Guid basketId, int movieId) =>
 });
 
 app.MapGet("/purchase", async (Guid basketId) =>
-{
-    var basket = await db.StringGetAsync(basketId.ToString());
+{	
+	var basket = await db.StringGetAsync(basketId.ToString());
 
-    var message = basket.ToString();
-	var rabbitMQService = app.Services.GetRequiredService<MessageQueueService>();
-	rabbitMQService.Publish(message);
+	List<int> movies = [];
+	if (basket.HasValue)
+	{
+		try
+		{
+			movies = JsonConvert.DeserializeObject<List<int>>(basket.ToString());
+		}
+		catch
+		{
+			return new { Success = false, Message = "Failed to parse basket from cache." };
+		}
+	}
+
+	var message = new { BasketId = basketId, Movies = movies };
+	
+    var rabbitMQService = app.Services.GetRequiredService<MessageQueueService>();
+	rabbitMQService.Publish(JsonConvert.SerializeObject(message));
 	
     return new { Success = true, Message = $"Basket '{basketId}' purchased." };
 });
