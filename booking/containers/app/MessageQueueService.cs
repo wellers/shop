@@ -3,7 +3,6 @@ using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
-using static System.Formats.Asn1.AsnWriter;
 
 namespace Booking
 {
