@@ -1,12 +1,13 @@
 ﻿using Booking;
+using Booking.Dtos;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddJsonFile($"appsettings.json").Build();
 
 builder.Services
-	.AddSingleton<MessageQueueService>()
-	.AddDbContext<BookingDbContext>();
+	.AddDbContext<PostgresContext>()
+	.AddSingleton<MessageQueueService>();
 
 var app = builder.Build();
 

@@ -1,7 +1,9 @@
-﻿using Newtonsoft.Json;
+﻿using Booking.Dtos;
+using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace Booking
 {
@@ -13,13 +15,13 @@ namespace Booking
 
 	public class MessageQueueService
 	{
+		private readonly IServiceProvider _serviceProvider;
 		private readonly IConnection _connection;
-		private readonly IModel _channel;
-		private readonly BookingDbContext _context;
+		private readonly IModel _channel;		
 
-		public MessageQueueService(BookingDbContext context, IConfiguration configuration)
+		public MessageQueueService(IServiceProvider serviceProvider, IConfiguration configuration)
 		{
-			_context = context;
+			_serviceProvider = serviceProvider;
 
 			var connectionFactory = new ConnectionFactory();
 			configuration.GetSection("RabbitMqConnection").Bind(connectionFactory);
@@ -31,10 +33,13 @@ namespace Booking
 		}
 
 		public void StartListening()
-		{
+		{		
 			var consumer = new EventingBasicConsumer(_channel);
 			consumer.Received += async (model, args) =>
 			{
+				using var scope = _serviceProvider.CreateScope();
+
+				var _context = scope.ServiceProvider.GetRequiredService<PostgresContext>();
 				var body = args.Body.ToArray();
 				var message = Encoding.UTF8.GetString(body);
 
@@ -49,17 +54,25 @@ namespace Booking
 					return;
 				}
 
-				if (basketPurchase != null)
+				if (basketPurchase == null)
 					return;
 
-				var movies = _context.Movies.Where(m => basketPurchase.Movies.Contains(m.MovieId)).ToList();
-
-				await _context.Bookings.AddAsync(new Booking
+				var booking = new Dtos.Booking
 				{
-					BasketId = basketPurchase.BasketId,
-					Movies = movies,
-					BookingDate = DateTime.Now
+					BasketId = basketPurchase.BasketId.ToString(),
+					BookingDate = DateTime.UtcNow
+				};
+
+				await _context.Bookings.AddAsync(booking);
+
+				var movies = _context.Movies.Where(movie => basketPurchase.Movies.Contains(movie.MovieId)).Select(movie => new Dtos.BookingMovie
+				{
+					Booking = booking,
+					Movie = movie
 				});
+
+				await _context.BookingMovies.AddRangeAsync(movies);
+
 
 				await _context.SaveChangesAsync();
 

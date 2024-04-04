@@ -18,7 +18,7 @@ CREATE TABLE booking_movies
 	booking_id INT,
 	movie_id INT,
 	CONSTRAINT movie_id FOREIGN KEY(movie_id) REFERENCES movies(movie_id),
-	CONSTRAINT booking_id FOREIGN KEY(booking_id) REFERENCES booking(booking_id)
+	CONSTRAINT booking_id FOREIGN KEY(booking_id) REFERENCES bookings(booking_id)
 );
 
 INSERT INTO movies(title, price) 
