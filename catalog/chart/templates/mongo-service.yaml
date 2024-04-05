@@ -1,0 +1,14 @@
+{{ $name := "mongo" }}
+{{ $fullName := printf "%s-%s" .Release.Name $name }}
+{{ $image := "mongo:4.0.1" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullName }}-service
+spec:
+  selector:
+    name: {{ $fullName }}
+  type: NodePort
+  ports:
+    - port: 27017
+      nodePort: 22000

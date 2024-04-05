@@ -1,0 +1,45 @@
+{{ $name := "graphql" }}
+{{ $version := "v1" }}
+{{ $fullName := printf "%s-%s-%s" .Release.Name $name $version }}
+{{ $image := printf "%s-%s" .Chart.Name $name }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName }}
+spec:
+  selector:
+    matchLabels:
+      name: {{ $fullName }}
+  template:
+    metadata:
+      labels:
+        name: {{ $fullName }}
+      annotations:
+        checksum: {{ index $image }}
+    spec:
+    {{- if .Values.mongo }}
+      initContainers:
+        - name: mongo-ready
+          image: busybox
+          command: ['sh', '-c', 'until nslookup catalog-mongo-service.default.svc.cluster.local; do echo waiting for mongodb connection; sleep 2; done;']
+    {{- end }}
+      containers:
+        - name:  {{ $name }}-{{ $version }}
+          image: {{ $image }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          ports:
+            - containerPort: 80          
+          env:
+            - name: ASPNETCORE_HTTP_PORTS 
+              value: "80"
+          readinessProbe:
+            httpGet:
+              path: /status/
+              port: 80
+            failureThreshold: 24
+            periodSeconds: 5
+            timeoutSeconds: 1
+          lifecycle:
+            preStop:
+              exec:
+                command : ["/bin/sh" , "-c", "sleep 60;"]

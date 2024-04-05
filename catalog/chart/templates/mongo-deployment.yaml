@@ -1,0 +1,29 @@
+{{ $name := "mongo" }}
+{{ $fullName := printf "%s-%s" .Release.Name $name }}
+{{ $image := "mongo:4.0.1" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName }}
+spec:
+  selector:
+    matchLabels:
+      name: {{ $fullName }}
+  template:
+    metadata:
+      labels:
+        name: {{ $fullName }}
+    spec:
+      containers:
+        - name:  {{ $name }}
+          image: {{ $image }}
+          ports:
+            - containerPort: 27017
+          volumeMounts:
+            - name: data
+              mountPath: /data/db
+      volumes:
+        - name: data
+          hostPath:
+            path: /home/temp
+            type: DirectoryOrCreate
