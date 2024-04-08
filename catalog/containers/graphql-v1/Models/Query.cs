@@ -9,7 +9,7 @@ namespace Catalog.Models
 		public async Task<MoviesFindResult> GetMovies([Service] MongoContext context, MoviesFindFilter? filter = null)
 		{
 			IQueryable<Movie> movies = context.Movies;
-			
+
 			if (filter != null)
 			{
 				movies = movies.Where(movie =>

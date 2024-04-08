@@ -9,34 +9,35 @@ namespace Catalog.Models
 		[GraphQLName("insert_movie")]
 		public async Task<MovieInsertResult> AddMovie([Service] MongoContext context, MovieInsertInput movie)
 		{
-			var result = context.Movies.Add(new Movie 
-			{ 
+			var result = context.Movies.Add(new Movie
+			{
 				Title = movie.Title,
 				Price = movie.Price,
 			});
 
 			await context.SaveChangesAsync();
 
-			return new MovieInsertResult {
+			return new MovieInsertResult
+			{
 				Success = result.IsKeySet,
-				Message =  "1 record inserted." 
+				Message = "1 record inserted."
 			};
 		}
 
-        [GraphQLName("remove_movies")]
-        public async Task<MoviesRemoveResult> RemoveMovies([Service] MongoContext context, MoviesRemoveInput movie)
+		[GraphQLName("remove_movies")]
+		public async Task<MoviesRemoveResult> RemoveMovies([Service] MongoContext context, MoviesRemoveInput movie)
 		{
 			var toRemove = await context.Movies.Where(m => movie.Ids.Contains(m.Id)).ToListAsync();
 
-            context.Movies.RemoveRange(toRemove);
+			context.Movies.RemoveRange(toRemove);
 
-            await context.SaveChangesAsync();
+			await context.SaveChangesAsync();
 
 			return new MoviesRemoveResult
-            {
+			{
 				Success = true,
 				Message = $"{toRemove.Count} record(s) removed."
 			};
-        }
+		}
 	}
 }
