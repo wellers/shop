@@ -1,8 +1,5 @@
 ﻿using Catalog.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using MongoDB.Driver;
-using MongoDB.Driver.Core.Configuration;
 using MongoDB.EntityFrameworkCore.Extensions;
 
 namespace Catalog.Database
