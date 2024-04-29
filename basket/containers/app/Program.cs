@@ -43,7 +43,7 @@ app.MapGet("/purchase", async (Guid basketId) =>
 		return new { Success = false, Message = "Failed to parse basket from cache." };
 	}
 
-	return new { Success = true, Message = $"Basket '{basketId}' purchased." };
+	return new { Success = success, Message = $"Basket '{basketId}' purchased." };
 });
 
 app.MapGet("/status", () => Results.Json(new { start = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds() }));
