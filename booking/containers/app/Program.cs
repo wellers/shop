@@ -1,5 +1,5 @@
-﻿using Booking;
-using Booking.Dtos;
+﻿using Booking.Dtos;
+using Booking.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
