@@ -1,6 +1,6 @@
 ﻿using StackExchange.Redis;
 
-namespace Basket
+namespace Basket.Services
 {
 	public class RedisService(IConfiguration configuration)
 	{

@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace Basket
+namespace Basket.Services
 {
 	public class BasketService(RedisService redisService, MessageQueueService messageQueueService)
 	{

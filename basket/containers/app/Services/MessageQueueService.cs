@@ -1,7 +1,7 @@
 ﻿using RabbitMQ.Client;
 using System.Text;
 
-namespace Basket
+namespace Basket.Services
 {
 	public class MessageQueueService
 	{
