@@ -4,12 +4,9 @@ namespace Basket.Services
 {
 	public class BasketService(RedisService redisService, MessageQueueService messageQueueService)
 	{
-		private readonly RedisService _redisService = redisService;
-		private readonly MessageQueueService _messageQueueService = messageQueueService;
-
 		public async Task<(bool, List<int>)> AddMovie(Guid basketId, int movieId)
 		{
-			var database = _redisService.GetDatabase();
+			var database = redisService.GetDatabase();
 
 			var basket = await database.StringGetAsync(basketId.ToString());
 
@@ -26,7 +23,7 @@ namespace Basket.Services
 
 		public async Task<bool> PurchaseBasket(Guid basketId)
 		{
-			var database = _redisService.GetDatabase();
+			var database = redisService.GetDatabase();
 
 			var basket = await database.StringGetAsync(basketId.ToString());
 
@@ -36,7 +33,7 @@ namespace Basket.Services
 
 			var message = new { BasketId = basketId, Movies = movies };
 
-			_messageQueueService.Publish(JsonConvert.SerializeObject(message));
+			messageQueueService.Publish(JsonConvert.SerializeObject(message));
 
 			return true;
 		}

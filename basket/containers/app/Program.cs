@@ -14,8 +14,8 @@ var basketService = app.Services.GetRequiredService<BasketService>();
 
 app.MapGet("/add", async (Guid basketId, int movieId) =>
 {
-	bool success = false;
-	List<int> movies = [];
+	var success = false;
+	List<int> movies;
 	try
 	{
 		(success, movies) = await basketService.AddMovie(basketId, movieId);
@@ -34,7 +34,7 @@ app.MapGet("/add", async (Guid basketId, int movieId) =>
 
 app.MapGet("/purchase", async (Guid basketId) =>
 {
-	bool success = false;
+	var success = false;
 	try
 	{
 		success = await basketService.PurchaseBasket(basketId);

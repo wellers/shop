@@ -5,9 +5,6 @@ namespace Catalog.Jobs
 {
 	public class SyncBookableMovies(IServiceProvider serviceProvider, IConfiguration configuration, BackgroundJobOptions options) : IBackgroundJob
 	{
-		private readonly IServiceProvider _serviceProvider = serviceProvider;
-		private readonly IConfiguration _configuration = configuration;
-
 		public string Name { get; } = options.Name;
 
 		public string CronSchedule { get; } = options.CronPattern;
@@ -20,10 +17,10 @@ namespace Catalog.Jobs
 		{
 			Console.WriteLine("Sync Bookable Movies job started.");
 			
-			using var scope = _serviceProvider.CreateScope();
+			using var scope = serviceProvider.CreateScope();
 			var context = scope.ServiceProvider.GetRequiredService<MongoContext>();
 
-			var getMoviesUrl = _configuration.GetValue<string>("GetMoviesUrl");
+			var getMoviesUrl = configuration.GetValue<string>("GetMoviesUrl");
 
 			if (getMoviesUrl is null)
 			{

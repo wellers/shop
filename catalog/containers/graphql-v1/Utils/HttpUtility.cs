@@ -2,7 +2,7 @@
 
 namespace Catalog.Utils
 {
-	public sealed class HttpRequestHelper
+	public static class HttpRequestHelper
 	{
 		public static async Task<T> Get<T>(string url) where T : new()
 		{
@@ -13,14 +13,14 @@ namespace Catalog.Utils
 			response = await httpClient.SendAsync(request).ConfigureAwait(false);
 			response.EnsureSuccessStatusCode();
 
-			using var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+			await using var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 			var serializer = new DataContractJsonSerializer(typeof(T));
 
 			T? obj = default;
 
 			try
 			{
-				obj = (T)serializer.ReadObject(responseStream);
+				obj = (T)serializer.ReadObject(responseStream)!;
 			}
 			catch (Exception)
 			{
