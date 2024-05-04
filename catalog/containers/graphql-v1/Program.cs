@@ -39,8 +39,6 @@ app.MapGet("/status", () => Results.Json(new { start = new DateTimeOffset(DateTi
 
 app.MapGet("/sync", async (IServiceProvider serviceProvider) =>
 {
-	using var scope = app.Services.CreateScope();
-
 	var jobOptions = new BackgroundJobOptions();
 	builder.Configuration.GetSection("SyncBookableMoviesJobOptions").Bind(jobOptions);
 
