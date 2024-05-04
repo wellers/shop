@@ -11,16 +11,13 @@ builder.Services
 
 var app = builder.Build();
 
-var rabbitMQService = app.Services.GetRequiredService<MessageQueueService>();
-rabbitMQService.StartListening();
+var rabbitMqService = app.Services.GetRequiredService<MessageQueueService>();
+rabbitMqService.StartListening();
 
 app.MapGet("/status", () => Results.Json(new { start = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds() }));
 
-app.MapGet("/movies", () =>
+app.MapGet("/movies", (PostgresContext context) =>
 {
-	using var scope = app.Services.CreateScope();
-	var context = scope.ServiceProvider.GetRequiredService<PostgresContext>();
-
 	var movies = context.Movies.Select(movie => new { movie.MovieId, movie.Title, movie.Price }).ToList();
 
 	return Results.Json(new { success = true, movies });

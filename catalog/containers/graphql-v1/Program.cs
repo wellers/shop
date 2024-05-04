@@ -37,7 +37,7 @@ app.MapGraphQL();
 
 app.MapGet("/status", () => Results.Json(new { start = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds() }));
 
-app.MapGet("/sync", async () =>
+app.MapGet("/sync", async (IServiceProvider serviceProvider) =>
 {
 	using var scope = app.Services.CreateScope();
 
@@ -46,7 +46,7 @@ app.MapGet("/sync", async () =>
 
 	var job = new SyncBookableMovies
 	(
-		scope.ServiceProvider,
+		serviceProvider,
 		builder.Configuration,
 		jobOptions
 	);

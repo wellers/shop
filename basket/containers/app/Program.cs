@@ -10,9 +10,7 @@ builder.Services.AddSingleton<BasketService>();
 
 var app = builder.Build();
 
-var basketService = app.Services.GetRequiredService<BasketService>();
-
-app.MapGet("/add", async (Guid basketId, int movieId) =>
+app.MapGet("/add", async (BasketService basketService, Guid basketId, int movieId) =>
 {
 	var success = false;
 	List<int> movies;
@@ -32,7 +30,7 @@ app.MapGet("/add", async (Guid basketId, int movieId) =>
 	return new { Success = success, Message = message };
 });
 
-app.MapGet("/purchase", async (Guid basketId) =>
+app.MapGet("/purchase", async (BasketService basketService, Guid basketId) =>
 {
 	var success = false;
 	try
