@@ -1,5 +1,7 @@
 ﻿using Catalog.Database;
+using Grpc.Net.Client;
 using Microsoft.EntityFrameworkCore;
+using Movies;
 
 namespace Catalog.Jobs
 {
@@ -27,20 +29,31 @@ namespace Catalog.Jobs
 				Console.WriteLine("GetMoviesUrl is not set.");
 				return;
 			}
+			
+			var httpHandler = new HttpClientHandler
+			{
+				ServerCertificateCustomValidationCallback =
+					HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+			};  
 
-			var response = await Utils.HttpRequestHelper.Get<Dtos.GetMoviesApiResponse>(getMoviesUrl);
+			AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+			
+			using var channel = GrpcChannel.ForAddress(getMoviesUrl, new GrpcChannelOptions { HttpHandler = httpHandler });
+			var client = new MovieService.MovieServiceClient(channel);
 
-			if (!response.Success)
+			var response = client.GetMovies(new GetMoviesRequest(), cancellationToken: cancellationToken);
+
+			if (response == null)
 			{
 				Console.WriteLine("Unable to retrieve Movies from Booking service.");
 				return;
 			}
 
-			var moviesById = response.Movies.ToDictionary(movie => movie.MovieId, movie => new Models.Movie
+			var moviesById = response.Movies.ToDictionary(movie => movie.Id, movie => new Models.Movie
 			{
-				Id = movie.MovieId,
+				Id = movie.Id,
 				Title = movie.Title,
-				Price = movie.Price.Value
+				Price = Convert.ToDecimal(movie.Price)
 			});
 			
 			var existingMovies = await context.Movies.ToListAsync(cancellationToken: cancellationToken);
@@ -53,22 +66,26 @@ namespace Catalog.Jobs
 					movie.Title = toUpdate.Title;
 					movie.Price = toUpdate.Price;
 					processedMovieIds.Add(movie.Id);
-					context.SaveChanges();
+					await context.SaveChangesAsync(cancellationToken);
 				}
 				else
 				{
 					var toRemove = await context.Movies.SingleAsync(m => m.Id == movie.Id, cancellationToken: cancellationToken);
 					context.Movies.Remove(toRemove);
-					context.SaveChanges();
+					await context.SaveChangesAsync(cancellationToken);
 					continue;
 				}
 			}
 
-			var toAdd = moviesById.Where(kvp => !processedMovieIds.Contains(kvp.Key)).Select(kvp => kvp.Value);
+			var toAdd = moviesById
+				.Where(kvp => !processedMovieIds.Contains(kvp.Key))
+				.Select(kvp => kvp.Value)
+				.ToList();
+			
 			if (toAdd.Any())
 			{
 				await context.Movies.AddRangeAsync(toAdd, cancellationToken);
-				context.SaveChanges();
+				await context.SaveChangesAsync(cancellationToken);
 			}
 
 			Console.WriteLine("Sync Bookable Movies job completed.");			

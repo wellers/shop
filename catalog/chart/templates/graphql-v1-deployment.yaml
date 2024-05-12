@@ -28,7 +28,8 @@ spec:
           image: {{ $image }}
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           ports:
-            - containerPort: 80          
+            - containerPort: 80
+              name: http
           env:
             - name: ASPNETCORE_HTTP_PORTS 
               value: "80"

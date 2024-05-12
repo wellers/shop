@@ -12,7 +12,7 @@ namespace Booking.Services
         public List<int> Movies { get; set; } = [];
     }
 
-    public class MessageQueueService
+    public class MessageQueueService : IDisposable
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly IConnection _connection;
@@ -38,7 +38,7 @@ namespace Booking.Services
             {
                 using var scope = _serviceProvider.CreateScope();
 
-                var _context = scope.ServiceProvider.GetRequiredService<PostgresContext>();
+                var context = scope.ServiceProvider.GetRequiredService<PostgresContext>();
                 var body = args.Body.ToArray();
                 var message = Encoding.UTF8.GetString(body);
 
@@ -62,18 +62,18 @@ namespace Booking.Services
                     BookingDate = DateTime.UtcNow
                 };
 
-                await _context.Bookings.AddAsync(booking);
+                await context.Bookings.AddAsync(booking);
 
-                var movies = _context.Movies.Where(movie => basketPurchase.Movies.Contains(movie.MovieId)).Select(movie => new BookingMovie
+                var movies = context.Movies.Where(movie => basketPurchase.Movies.Contains(movie.MovieId)).Select(movie => new BookingMovie
                 {
                     Booking = booking,
                     Movie = movie
                 });
 
-                await _context.BookingMovies.AddRangeAsync(movies);
+                await context.BookingMovies.AddRangeAsync(movies);
 
 
-                await _context.SaveChangesAsync();
+                await context.SaveChangesAsync();
 
                 Console.WriteLine(" [x] Received {0}", message);
             };

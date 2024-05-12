@@ -27,9 +27,11 @@ spec:
           ports:
             - containerPort: 80
               name: http
+            - containerPort: 5000
+              name: grpc
           env:
             - name: ASPNETCORE_HTTP_PORTS 
-              value: "80"
+              value: "80;5000"
           readinessProbe:
             httpGet:
               path: /status/

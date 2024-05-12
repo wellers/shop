@@ -12,3 +12,6 @@ spec:
     - name: http
       protocol: TCP
       port: 80
+    - name: grpc
+      protocol: TCP
+      port: 5000

@@ -8,10 +8,21 @@
 
   <ItemGroup>
     <PackageReference Include="CronScheduler.AspNetCore" Version="3.1.0" />
+    <PackageReference Include="Google.Protobuf" Version="3.27.0-rc2" />
+    <PackageReference Include="Grpc.AspNetCore" Version="2.63.0-pre1" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.63.0-pre1" />
+    <PackageReference Include="Grpc.Tools" Version="2.64.0-pre1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="HotChocolate.AspNetCore" Version="13.0.2" />
     <PackageReference Include="HotChocolate.Data.EntityFramework" Version="13.0.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="7.0.3" />
     <PackageReference Include="MongoDB.EntityFrameworkCore" Version="7.0.0-preview.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="Protos\movies.proto" GrpcServices="Client,Server" />
   </ItemGroup>
 
 </Project>
