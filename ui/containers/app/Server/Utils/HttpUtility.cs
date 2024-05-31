@@ -1,6 +1,9 @@
-﻿using System.Runtime.Serialization.Json;
+﻿using System;
+using System.Net.Http;
+using System.Runtime.Serialization.Json;
+using System.Threading.Tasks;
 
-namespace Catalog.Utils
+namespace Server.Utils
 {
 	public static class HttpRequestHelper
 	{
@@ -8,9 +11,8 @@ namespace Catalog.Utils
 		{
 			var request = new HttpRequestMessage(HttpMethod.Get, url);
 
-			HttpResponseMessage response;
 			using var httpClient = new HttpClient();
-			response = await httpClient.SendAsync(request).ConfigureAwait(false);
+			var response = await httpClient.SendAsync(request).ConfigureAwait(false);
 			response.EnsureSuccessStatusCode();
 
 			await using var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
