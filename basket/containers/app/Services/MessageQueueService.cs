@@ -3,7 +3,7 @@ using System.Text;
 
 namespace Basket.Services
 {
-	public class MessageQueueService
+	public class MessageQueueService : IDisposable
 	{
 		private readonly IConnection _connection;
 		private readonly IModel _channel;

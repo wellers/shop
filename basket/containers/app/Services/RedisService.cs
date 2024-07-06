@@ -9,7 +9,7 @@ namespace Basket.Services
 			var redisHostname = configuration.GetValue<string>("RedisHostname") 
 				?? throw new ApplicationException("redisHostname cannot be null.");
 
-			ConnectionMultiplexer redis = ConnectionMultiplexer.Connect(redisHostname);
+			var redis = ConnectionMultiplexer.Connect(redisHostname);
 			return redis.GetDatabase();
 		}
 	}
