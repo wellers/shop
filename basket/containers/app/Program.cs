@@ -2,7 +2,7 @@
 using Basket.Services;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Configuration.AddJsonFile($"appsettings.json").Build();
+builder.Configuration.AddJsonFile("appsettings.json").Build();
 
 builder.Services.AddSingleton<RedisService>();
 builder.Services.AddSingleton<MessageQueueService>();

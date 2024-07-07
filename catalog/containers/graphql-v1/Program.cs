@@ -4,7 +4,7 @@ using Catalog.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Configuration.AddJsonFile($"appsettings.json").Build();
+builder.Configuration.AddJsonFile("appsettings.json").Build();
 
 builder.Services
 	.AddDbContext<MongoContext>()
