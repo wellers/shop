@@ -1,5 +1,4 @@
-﻿using Basket;
-using Basket.Services;
+﻿using Basket.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.json").Build();
@@ -12,7 +11,7 @@ var app = builder.Build();
 
 app.MapGet("/add", async (BasketService basketService, Guid basketId, int movieId) =>
 {
-	var success = false;
+	bool success;
 	List<int> movies;
 	try
 	{
@@ -32,7 +31,7 @@ app.MapGet("/add", async (BasketService basketService, Guid basketId, int movieI
 
 app.MapGet("/purchase", async (BasketService basketService, Guid basketId) =>
 {
-	var success = false;
+	bool success;
 	try
 	{
 		success = await basketService.PurchaseBasket(basketId);
