@@ -67,7 +67,6 @@ public class MessageQueueService : IDisposable
 
             await context.BookingMovies.AddRangeAsync(movies);
 
-
             await context.SaveChangesAsync();
 
             Console.WriteLine(" [x] Received {0}", message);

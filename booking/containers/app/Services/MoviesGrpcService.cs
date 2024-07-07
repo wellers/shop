@@ -1,14 +1,15 @@
 using Booking.Dtos;
 using Grpc.Core;
+using Microsoft.EntityFrameworkCore;
 using Movies;
 
 namespace Booking.Services;
 
 public class MoviesGrpcService(PostgresContext dbContext) : MovieService.MovieServiceBase
 {
-	public override Task<GetMoviesResponse> GetMovies(GetMoviesRequest request, ServerCallContext context)
+	public override async Task<GetMoviesResponse> GetMovies(GetMoviesRequest request, ServerCallContext context)
 	{
-		var movies = dbContext.Movies.ToList();
+		var movies = await dbContext.Movies.ToListAsync();
 
 		var response = new GetMoviesResponse();
 		response.Movies.AddRange(movies.Select(movie => new Movies.Movie
@@ -18,6 +19,6 @@ public class MoviesGrpcService(PostgresContext dbContext) : MovieService.MovieSe
 			Title = movie.Title
 		}));
 
-		return Task.FromResult(response);
+		return response;
 	}
 }
