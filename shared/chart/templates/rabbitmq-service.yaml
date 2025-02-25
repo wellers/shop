@@ -13,8 +13,7 @@ spec:
     - name: http
       protocol: TCP
       port: 15672    
-      nodePort: 15672
+      nodePort: 30002
     - name: amqp
       protocol: TCP
       port: 5672
-      nodePort: 5672

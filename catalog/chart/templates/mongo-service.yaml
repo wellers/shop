@@ -8,7 +8,11 @@ metadata:
 spec:
   selector:
     name: {{ $fullName }}
+  {{- if .Values.nodePort }}
   type: NodePort
+  {{- end }}
   ports:
     - port: 27017
+      {{- if .Values.nodePort }}
       nodePort: 22000
+      {{- end }}

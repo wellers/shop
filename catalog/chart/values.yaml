@@ -1,2 +1,3 @@
 imagePullPolicy: IfNotPresent
 nodePort: false
+mongo: true
