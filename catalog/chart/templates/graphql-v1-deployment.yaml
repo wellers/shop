@@ -1,7 +1,7 @@
 {{ $name := "graphql" }}
 {{ $version := "v1" }}
 {{ $fullName := printf "%s-%s-%s" .Release.Name $name $version }}
-{{ $image := printf "%s-%s" .Chart.Name $name }}
+{{ $image := printf "%s-%s-%s" .Chart.Name $name $version }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
