@@ -37,6 +37,13 @@ High-level flow:
 * Routes external traffic into the Kubernetes cluster
 * Demonstrates gateway pattern in microservices architecture
 
+### Internal Communication
+* gRPC used for efficient internal service-to-service communication
+* RabbitMQ used for asynchronous event propagation
+* Clear separation between synchronous and asynchronous workflows
+
+This reflects real-world distributed system design patterns.
+
 ## Shared Infrastructure
 * RabbitMQ (message broker)
 * Redis (basket storage)
@@ -50,6 +57,7 @@ High-level flow:
 * Microservices decomposition
 * Event-driven architecture
 * Asynchronous messaging
+* gRPC internal communication
 * Polyglot persistence
 * API gateway pattern
 * Containerised services
