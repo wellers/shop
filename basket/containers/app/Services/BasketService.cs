@@ -1,14 +1,16 @@
 using Newtonsoft.Json;
+using StackExchange.Redis;
 
 namespace Basket.Services
 {
 	public class BasketService(RedisService redisService, MessageQueueService messageQueueService)
 	{
+		private readonly IDatabase _database = redisService.Database ?? throw new ApplicationException("Redis database is not available.");
+		private readonly MessageQueueService _messageQueueService = messageQueueService;
+
 		public async Task<(bool, List<int>)> AddMovie(Guid basketId, int movieId)
 		{
-			var database = redisService.GetDatabase();
-
-			var basket = await database.StringGetAsync(basketId.ToString());
+			var basket = await _database.StringGetAsync(basketId.ToString());
 
 			List<int> movies = [];
 			if (basket.HasValue)
@@ -16,16 +18,14 @@ namespace Basket.Services
 
 			movies.Add(movieId);
 
-			var success = await database.StringSetAsync(basketId.ToString(), JsonConvert.SerializeObject(movies));
+			var success = await _database.StringSetAsync(basketId.ToString(), JsonConvert.SerializeObject(movies));
 
 			return (success, movies);
 		}
 
 		public async Task<bool> PurchaseBasket(Guid basketId)
 		{
-			var database = redisService.GetDatabase();
-
-			var basket = await database.StringGetAsync(basketId.ToString());
+			var basket = await _database.StringGetAsync(basketId.ToString());
 
 			List<int> movies = [];
 			if (basket.HasValue)
@@ -33,7 +33,7 @@ namespace Basket.Services
 
 			var message = new { BasketId = basketId, Movies = movies };
 
-			messageQueueService.Publish(JsonConvert.SerializeObject(message));
+			_messageQueueService.Publish(JsonConvert.SerializeObject(message));
 
 			return true;
 		}

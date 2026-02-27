@@ -2,15 +2,17 @@
 
 namespace Basket.Services
 {
-	public class RedisService(IConfiguration configuration)
+	public class RedisService
 	{
-		public IDatabase GetDatabase()
+		public IDatabase? Database { get; private set; }
+
+		public RedisService(IConfiguration configuration)
 		{
 			var redisHostname = configuration.GetValue<string>("RedisHostname") 
 				?? throw new ApplicationException("redisHostname cannot be null.");
-
-			var redis = ConnectionMultiplexer.Connect(redisHostname);
-			return redis.GetDatabase();
-		}
+			
+			var connection = ConnectionMultiplexer.Connect(redisHostname);
+			Database = connection.GetDatabase();
+		}		
 	}
 }
