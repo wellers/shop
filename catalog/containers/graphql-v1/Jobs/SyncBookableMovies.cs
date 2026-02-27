@@ -7,9 +7,9 @@ namespace Catalog.Jobs
 {
 	public class SyncBookableMovies(IServiceProvider serviceProvider, IConfiguration configuration, BackgroundJobOptions options) : IBackgroundJob
 	{
-		public string Name { get; } = options.Name;
+		public string? Name { get; } = options.Name;
 
-		public string CronSchedule { get; } = options.CronPattern;
+		public string? CronSchedule { get; } = options.CronPattern;
 
 		public string? CronTimeZone { get; } = null;
 

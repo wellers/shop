@@ -13,6 +13,8 @@ public class MessageQueueService : IDisposable
 	private readonly IConnection _connection;
 	private readonly IModel _channel;
 	private readonly ILogger _logger;
+	
+	private string _queueName = "bookings";
 
 	public MessageQueueService(IServiceProvider serviceProvider, IConfiguration configuration, ILogger<MessageQueueService> logger)
 	{
@@ -25,7 +27,7 @@ public class MessageQueueService : IDisposable
 		_connection = connectionFactory.CreateConnection();
 		_channel = _connection.CreateModel();
 
-		_channel.QueueDeclare(queue: "bookings", durable: true, exclusive: false, autoDelete: false);
+		_channel.QueueDeclare(queue: _queueName, durable: true, exclusive: false, autoDelete: false);
 	}
 
 	public void StartListening()
@@ -80,13 +82,12 @@ public class MessageQueueService : IDisposable
 			{
 				_logger.LogError(ex, "Error processing message");
 
-
 				// Requeue message for retry
 				_channel.BasicNack(args.DeliveryTag, multiple: false, requeue: true);
 			}
 		};
 
-		_channel.BasicConsume(queue: "bookings", autoAck: false, consumer: consumer);
+		_channel.BasicConsume(queue: _queueName, autoAck: false, consumer: consumer);
 	}
 
 	public void Dispose()
