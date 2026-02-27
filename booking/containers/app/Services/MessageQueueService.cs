@@ -9,75 +9,89 @@ namespace Booking.Services;
 
 public class MessageQueueService : IDisposable
 {
-    private readonly IServiceProvider _serviceProvider;
-    private readonly IConnection _connection;
-    private readonly IModel _channel;
+	private readonly IServiceProvider _serviceProvider;
+	private readonly IConnection _connection;
+	private readonly IModel _channel;
+	private readonly ILogger _logger;
 
-    public MessageQueueService(IServiceProvider serviceProvider, IConfiguration configuration)
-    {
-        _serviceProvider = serviceProvider;
+	public MessageQueueService(IServiceProvider serviceProvider, IConfiguration configuration, ILogger<MessageQueueService> logger)
+	{
+		_serviceProvider = serviceProvider;
+		_logger = logger;
 
-        var connectionFactory = new ConnectionFactory();
-        configuration.GetSection("RabbitMqConnection").Bind(connectionFactory);
+		var connectionFactory = new ConnectionFactory();
+		configuration.GetSection("RabbitMqConnection").Bind(connectionFactory);
 
-        _connection = connectionFactory.CreateConnection();
-        _channel = _connection.CreateModel();
+		_connection = connectionFactory.CreateConnection();
+		_channel = _connection.CreateModel();
 
-        _channel.QueueDeclare(queue: "bookings", durable: true, exclusive: false, autoDelete: false);
-    }
+		_channel.QueueDeclare(queue: "bookings", durable: true, exclusive: false, autoDelete: false);
+	}
 
-    public void StartListening()
-    {
-        var consumer = new EventingBasicConsumer(_channel);
-        consumer.Received += async (model, args) =>
-        {
-            using var scope = _serviceProvider.CreateScope();
+	public void StartListening()
+	{
+		_channel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
 
-            var context = scope.ServiceProvider.GetRequiredService<PostgresContext>();
-            var body = args.Body.ToArray();
-            var message = Encoding.UTF8.GetString(body);
+		var consumer = new EventingBasicConsumer(_channel);
 
-            BasketPurchase basketPurchase = null;
-            try
-            {
-                basketPurchase = JsonConvert.DeserializeObject<BasketPurchase>(message);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-                return;
-            }
+		consumer.Received += async (model, args) =>
+		{
+			try
+			{
+				using var scope = _serviceProvider.CreateScope();
+				var context = scope.ServiceProvider.GetRequiredService<PostgresContext>();
 
-            if (basketPurchase == null)
-                return;
+				var body = args.Body.ToArray();
+				var message = Encoding.UTF8.GetString(body);
 
-            var booking = new Dtos.Booking
-            {
-                BasketId = basketPurchase.BasketId.ToString(),
-                BookingDate = DateTime.UtcNow
-            };
+				var basketPurchase = JsonConvert.DeserializeObject<BasketPurchase>(message);
 
-            await context.Bookings.AddAsync(booking);
+				if (basketPurchase == null)
+				{
+					_channel.BasicReject(args.DeliveryTag, requeue: false);
+					return;
+				}
 
-            var movies = context.Movies.Where(movie => basketPurchase.Movies.Contains(movie.MovieId)).Select(movie => new BookingMovie
-            {
-                Booking = booking,
-                Movie = movie
-            });
+				var booking = new Dtos.Booking
+				{
+					BasketId = basketPurchase.BasketId.ToString(),
+					BookingDate = DateTime.UtcNow
+				};
 
-            await context.BookingMovies.AddRangeAsync(movies);
+				await context.Bookings.AddAsync(booking);
 
-            await context.SaveChangesAsync();
+				var movies = context.Movies
+					.Where(movie => basketPurchase.Movies.Contains(movie.MovieId))
+					.Select(movie => new BookingMovie
+					{
+						Booking = booking,
+						Movie = movie
+					});
 
-            Console.WriteLine(" [x] Received {0}", message);
-        };
+				await context.BookingMovies.AddRangeAsync(movies);
 
-        _channel.BasicConsume(queue: "bookings", autoAck: true, consumer: consumer);
-    }
+				await context.SaveChangesAsync();
 
-    public void Dispose()
-    {
-        _channel.Dispose();
-        _connection.Dispose();
-    }
+				_channel.BasicAck(args.DeliveryTag, multiple: false);
+
+				_logger.LogInformation($"[x] Processed {message}");
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Error processing message");
+
+
+				// Requeue message for retry
+				_channel.BasicNack(args.DeliveryTag, multiple: false, requeue: true);
+			}
+		};
+
+		_channel.BasicConsume(queue: "bookings", autoAck: false, consumer: consumer);
+	}
+
+	public void Dispose()
+	{
+		_channel.Dispose();
+		_connection.Dispose();
+	}
 }

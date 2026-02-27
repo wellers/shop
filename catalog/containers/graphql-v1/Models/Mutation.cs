@@ -1,5 +1,4 @@
 ﻿using Catalog.Database;
-using GreenDonut;
 using Microsoft.EntityFrameworkCore;
 
 namespace Catalog.Models

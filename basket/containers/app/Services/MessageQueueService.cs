@@ -1,44 +1,43 @@
-﻿using RabbitMQ.Client;
-using System.Text;
+﻿using System.Text;
+using RabbitMQ.Client;
 
-namespace Basket.Services
+public class MessageQueueService : IDisposable
 {
-	public class MessageQueueService : IDisposable
-	{
-		private readonly IConnection _connection;
-		private readonly IModel _channel;
+    private readonly IConnection _connection;
+    private readonly IModel _channel;
 
-		public MessageQueueService(IConfiguration configuration)
-		{
-			var connectionFactory = new ConnectionFactory();
-			configuration.GetSection("RabbitMqConnection").Bind(connectionFactory);
+    private const string ExchangeName = "bookings";
+    private const string QueueName = "bookings";
+    private const string RoutingKey = "bookings";
 
-			_connection = connectionFactory.CreateConnection();
-			_channel = _connection.CreateModel();
+    public MessageQueueService(IConfiguration configuration)
+    {
+        var factory = new ConnectionFactory();
+        configuration.GetSection("RabbitMqConnection").Bind(factory);
 
-			_channel.QueueDeclare(queue: "bookings", durable: true, exclusive: false, autoDelete: false);
-		}
+        factory.AutomaticRecoveryEnabled = true;
 
-		public void Publish(string message)
-		{
-			_channel.ExchangeDeclare(exchange: "bookings", type: "direct", durable: true, autoDelete: false);
-			_channel.QueueDeclare(queue: "bookings", durable: true, exclusive: false, autoDelete: false);
+        _connection = factory.CreateConnection();
+        _channel = _connection.CreateModel();
 
-			var properties = _channel.CreateBasicProperties();
-			properties.Persistent = true;
+        _channel.ExchangeDeclare(ExchangeName, ExchangeType.Direct, true);
+        _channel.QueueDeclare(QueueName, true, false, false);
+        _channel.QueueBind(QueueName, ExchangeName, RoutingKey);
+    }
 
-			_channel.QueueBind(queue: "bookings", exchange: "bookings", routingKey: "bookings");
+    public void Publish(string message)
+    {
+        var properties = _channel.CreateBasicProperties();
+        properties.Persistent = true;
 
-			var body = Encoding.UTF8.GetBytes(message);
-			_channel.BasicPublish(exchange: "bookings", routingKey: "bookings", basicProperties: properties, body);
+        var body = Encoding.UTF8.GetBytes(message);
 
-			Console.WriteLine($"Sent: {message}");
-		}
+        _channel.BasicPublish(ExchangeName, RoutingKey, properties, body);
+    }
 
-		public void Dispose()
-		{
-			_channel.Dispose();
-			_connection.Dispose();
-		}
-	}
+    public void Dispose()
+    {
+        _channel?.Close();
+        _connection?.Close();
+    }
 }

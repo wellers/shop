@@ -4,6 +4,6 @@
 	{
 		public bool Success { get; set; }
 		public string Message { get; set; } = string.Empty;
-		public List<Movie> Docs { get; set; } = new List<Movie>();
+		public IReadOnlyList<Movie> Docs { get; set; } = [];
 	}
 }
