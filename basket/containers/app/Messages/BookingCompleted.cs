@@ -1,5 +1,6 @@
 namespace Basket.Messages;
 
+// should exist in shared nuget library, but for simplicity we will keep it here
 public class BookingCompleted
 {
 	public Guid BasketId { get; set; }

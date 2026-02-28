@@ -5,7 +5,7 @@ builder.Configuration.AddJsonFile("appsettings.json").Build();
 
 builder.Services.AddSingleton<RedisService>();
 builder.Services.AddSingleton<MessageQueueService>();
-builder.Services.AddSingleton<BasketService>();
+builder.Services.AddScoped<BasketService>();
 
 var app = builder.Build();
 
