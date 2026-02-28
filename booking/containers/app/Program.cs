@@ -6,15 +6,14 @@ using RabbitMQ.Client;
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.json").Build();
 
-builder.Services.AddSingleton(sp =>
-{
-	var factory = new ConnectionFactory();
-	builder.Configuration.GetSection("RabbitMqConnection").Bind(factory);
-	factory.AutomaticRecoveryEnabled = true;
-	return factory.CreateConnection();
-});
-
 builder.Services
+	.AddSingleton(sp =>
+	{
+		var factory = new ConnectionFactory();
+		builder.Configuration.GetSection("RabbitMqConnection").Bind(factory);
+		factory.AutomaticRecoveryEnabled = true;
+		return factory.CreateConnection();
+	})
 	.AddDbContext<PostgresContext>()
 	.AddHostedService<BookingConsumer>()
 	.AddGrpc(options =>

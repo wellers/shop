@@ -10,19 +10,19 @@ builder.Configuration.AddJsonFile("appsettings.json").Build();
 var redisHostname = builder.Configuration.GetValue<string>("RedisHostname")
 				?? throw new ApplicationException("redisHostname cannot be null.");
 
-builder.Services.AddSingleton<IConnectionMultiplexer>(sp => ConnectionMultiplexer.Connect(redisHostname));
-builder.Services.AddSingleton<RedisService>();
-
-builder.Services.AddSingleton(sp =>
-{
-	var factory = new ConnectionFactory();
-	builder.Configuration.GetSection("RabbitMqConnection").Bind(factory);
-	factory.AutomaticRecoveryEnabled = true;
-	return factory.CreateConnection();
-});
-builder.Services.AddHostedService<BookingConsumer>();
-builder.Services.AddSingleton<BookingPublisher>();
-builder.Services.AddScoped<BasketService>();
+builder.Services
+	.AddSingleton<IConnectionMultiplexer>(sp => ConnectionMultiplexer.Connect(redisHostname))
+	.AddSingleton<RedisService>()
+	.AddSingleton(sp =>
+	{
+		var factory = new ConnectionFactory();
+		builder.Configuration.GetSection("RabbitMqConnection").Bind(factory);
+		factory.AutomaticRecoveryEnabled = true;
+		return factory.CreateConnection();
+	})
+	.AddHostedService<BookingConsumer>()
+	.AddSingleton<BookingPublisher>()
+	.AddScoped<BasketService>();
 
 var app = builder.Build();
 
