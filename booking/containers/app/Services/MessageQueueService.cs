@@ -13,8 +13,10 @@ public class MessageQueueService : IDisposable
 	private readonly IConnection _connection;
 	private readonly IModel _channel;
 	private readonly ILogger _logger;
-	
-	private string _queueName = "bookings";
+
+	private const string BookingCompletedExchangeName = "bookings_completed";
+	private const string BookingStartedQueueName = "bookings_started";
+	private const string BookingsCompletedQueueName = "bookings_completed";
 
 	public MessageQueueService(IServiceProvider serviceProvider, IConfiguration configuration, ILogger<MessageQueueService> logger)
 	{
@@ -27,7 +29,20 @@ public class MessageQueueService : IDisposable
 		_connection = connectionFactory.CreateConnection();
 		_channel = _connection.CreateModel();
 
-		_channel.QueueDeclare(queue: _queueName, durable: true, exclusive: false, autoDelete: false);
+		_channel.QueueDeclare(queue: BookingStartedQueueName, durable: true, exclusive: false, autoDelete: false);
+
+		_channel.ExchangeDeclare(BookingCompletedExchangeName, ExchangeType.Direct, true);
+		_channel.QueueBind(BookingsCompletedQueueName, BookingCompletedExchangeName, "");
+	}
+
+	public void Publish(string message)
+	{
+		var properties = _channel.CreateBasicProperties();
+		properties.Persistent = true;
+
+		var body = Encoding.UTF8.GetBytes(message);
+
+		_channel.BasicPublish(BookingCompletedExchangeName, "", properties, body);
 	}
 
 	public void StartListening()
@@ -71,10 +86,11 @@ public class MessageQueueService : IDisposable
 					});
 
 				await context.BookingMovies.AddRangeAsync(movies);
-
 				await context.SaveChangesAsync();
 
 				_channel.BasicAck(args.DeliveryTag, multiple: false);
+
+				Publish(JsonConvert.SerializeObject(new { basketPurchase.BasketId, CompletedAt = DateTime.UtcNow }));
 
 				_logger.LogInformation($"[x] Processed {message}");
 			}
@@ -87,7 +103,7 @@ public class MessageQueueService : IDisposable
 			}
 		};
 
-		_channel.BasicConsume(queue: _queueName, autoAck: false, consumer: consumer);
+		_channel.BasicConsume(queue: BookingStartedQueueName, autoAck: false, consumer: consumer);
 	}
 
 	public void Dispose()

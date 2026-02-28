@@ -9,6 +9,9 @@ builder.Services.AddSingleton<BasketService>();
 
 var app = builder.Build();
 
+var rabbitMqService = app.Services.GetRequiredService<MessageQueueService>();
+rabbitMqService.StartListening();
+
 app.MapGet("/add", async (BasketService basketService, Guid basketId, int movieId) =>
 {
 	bool success;
