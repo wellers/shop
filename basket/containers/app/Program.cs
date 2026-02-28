@@ -1,16 +1,30 @@
-﻿using Basket.Services;
+﻿using Basket.Consumers;
+using Basket.Publishers;
+using Basket.Services;
+using RabbitMQ.Client;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.json").Build();
 
+var redisHostname = builder.Configuration.GetValue<string>("RedisHostname")
+				?? throw new ApplicationException("redisHostname cannot be null.");
+
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp => ConnectionMultiplexer.Connect(redisHostname));
 builder.Services.AddSingleton<RedisService>();
-builder.Services.AddSingleton<MessageQueueService>();
+
+builder.Services.AddSingleton(sp =>
+{
+	var factory = new ConnectionFactory();
+	builder.Configuration.GetSection("RabbitMqConnection").Bind(factory);
+	factory.AutomaticRecoveryEnabled = true;
+	return factory.CreateConnection();
+});
+builder.Services.AddHostedService<BookingConsumer>();
+builder.Services.AddSingleton<BookingPublisher>();
 builder.Services.AddScoped<BasketService>();
 
 var app = builder.Build();
-
-var rabbitMqService = app.Services.GetRequiredService<MessageQueueService>();
-rabbitMqService.StartListening();
 
 app.MapGet("/add", async (BasketService basketService, Guid basketId, int movieId) =>
 {

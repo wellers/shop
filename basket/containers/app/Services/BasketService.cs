@@ -1,12 +1,12 @@
+using Basket.Publishers;
 using Newtonsoft.Json;
 using StackExchange.Redis;
 
 namespace Basket.Services
 {
-	public class BasketService(RedisService redisService, MessageQueueService messageQueueService)
+	public class BasketService(RedisService redisService, BookingPublisher bookingPublisher)
 	{
 		private readonly IDatabase _database = redisService.Database ?? throw new ApplicationException("Redis database is not available.");
-		private readonly MessageQueueService _messageQueueService = messageQueueService;
 
 		public async Task<(bool, List<int>)> AddMovie(Guid basketId, int movieId)
 		{
@@ -33,7 +33,7 @@ namespace Basket.Services
 
 			var message = new { BasketId = basketId, Movies = movies };
 
-			_messageQueueService.Publish(JsonConvert.SerializeObject(message));
+			await bookingPublisher.PublishAsync(JsonConvert.SerializeObject(message));
 
 			return true;
 		}
