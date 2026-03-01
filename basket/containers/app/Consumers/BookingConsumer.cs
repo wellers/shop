@@ -7,7 +7,7 @@ using System.Text;
 
 namespace Basket.Consumers;
 
-public class BookingConsumer(IConnection connection, IServiceProvider serviceProvider, ILogger<BookingConsumer> logger) : BackgroundService, IDisposable
+public class BookingConsumer(IConnection connection, ILogger<BookingConsumer> logger, RedisService redisService) : BackgroundService, IDisposable
 {
 	private IModel? _consumerChannel;
 
@@ -31,9 +31,6 @@ public class BookingConsumer(IConnection connection, IServiceProvider servicePro
 		{
 			try
 			{
-				using var scope = serviceProvider.CreateScope();
-				var context = scope.ServiceProvider.GetRequiredService<RedisService>();
-
 				var body = args.Body.ToArray();
 				var message = Encoding.UTF8.GetString(body);
 
@@ -45,7 +42,7 @@ public class BookingConsumer(IConnection connection, IServiceProvider servicePro
 					return;
 				}
 
-				context.Database?.KeyDelete(bookingCompleted.BasketId.ToString());
+				redisService.Database?.KeyDelete(bookingCompleted.BasketId.ToString());
 
 				_consumerChannel?.BasicAck(args.DeliveryTag, multiple: false);
 

@@ -7,7 +7,7 @@ using System.Text;
 
 namespace Booking.Consumers;
 
-public class BookingConsumer(IConnection connection, IServiceProvider serviceProvider, ILogger<BookingConsumer> logger) : BackgroundService, IDisposable
+public class BookingConsumer(IConnection connection, ILogger<BookingConsumer> logger, PostgresContext context) : BackgroundService, IDisposable
 {
 	private IModel? _consumerChannel;
 
@@ -31,9 +31,6 @@ public class BookingConsumer(IConnection connection, IServiceProvider servicePro
 		{
 			try
 			{
-				using var scope = serviceProvider.CreateScope();
-				var context = scope.ServiceProvider.GetRequiredService<PostgresContext>();
-
 				var body = args.Body.ToArray();
 				var message = Encoding.UTF8.GetString(body);
 
