@@ -1,0 +1,14 @@
+{{ $name := "app" }}
+{{ $fullName := printf "%s-%s" .Release.Name $name }}
+{{ $image := printf "%s-%s" .Chart.Name $name }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullName }}-service
+spec:
+  selector:
+    name: {{ $fullName }}
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80

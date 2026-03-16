@@ -1,4 +1,5 @@
 ﻿using Basket.Consumers;
+using Basket.Messages;
 using Basket.Publishers;
 using Basket.Services;
 using RabbitMQ.Client;
@@ -26,13 +27,13 @@ builder.Services
 
 var app = builder.Build();
 
-app.MapGet("/add", async (BasketService basketService, Guid basketId, int movieId) =>
+app.MapPost("/baskets/{basketId}/items", async (BasketService basketService, Guid basketId, AddItemRequest request) =>
 {
 	bool success;
 	List<int> movies;
 	try
 	{
-		(success, movies) = await basketService.AddMovie(basketId, movieId);
+		(success, movies) = await basketService.AddMovie(basketId, request.MovieId);
 	}
 	catch
 	{
@@ -46,7 +47,7 @@ app.MapGet("/add", async (BasketService basketService, Guid basketId, int movieI
 	return new { Success = success, Message = message };
 });
 
-app.MapGet("/purchase", async (BasketService basketService, Guid basketId) =>
+app.MapPost("/baskets/{basketId}/checkout", async (BasketService basketService, Guid basketId) =>
 {
 	bool success;
 	try
