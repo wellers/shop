@@ -38,7 +38,7 @@ public class BookingConsumer(IConnection connection, ILogger<BookingConsumer> lo
 				if (bookingCompleted == null)
 				{
 					_consumerChannel?.BasicReject(args.DeliveryTag, requeue: false);
-					return;
+					return Task.CompletedTask;
 				}
 
 				_consumerChannel?.BasicAck(args.DeliveryTag, multiple: false);
