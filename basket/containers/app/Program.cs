@@ -1,4 +1,4 @@
-﻿using Basket.Consumers;
+using Basket.Consumers;
 using Basket.Messages;
 using Basket.Publishers;
 using Basket.Services;
@@ -7,6 +7,7 @@ using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.json").Build();
+var startedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
 var redisHostname = builder.Configuration.GetValue<string>("RedisHostname")
 				?? throw new ApplicationException("redisHostname cannot be null.");
@@ -19,6 +20,7 @@ builder.Services
 		var factory = new ConnectionFactory();
 		builder.Configuration.GetSection("RabbitMqConnection").Bind(factory);
 		factory.AutomaticRecoveryEnabled = true;
+		factory.DispatchConsumersAsync = true;
 		return factory.CreateConnection();
 	})
 	.AddHostedService<BookingConsumer>()
@@ -62,7 +64,7 @@ app.MapPost("/baskets/{basketId}/checkout", async (BasketService basketService, 
 	return new { Success = success, Message = $"Basket '{basketId}' purchased." };
 });
 
-app.MapGet("/status", () => Results.Json(new { start = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds() }));
+app.MapGet("/status", () => Results.Json(new { start = startedAt, now = DateTimeOffset.UtcNow.ToUnixTimeSeconds() }));
 
 app.MapGet("/", () => "🚀 Server ready");
 

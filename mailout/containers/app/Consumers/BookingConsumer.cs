@@ -1,4 +1,4 @@
-﻿using Mailout.Messages;
+using Mailout.Messages;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -24,7 +24,7 @@ public class BookingConsumer(IConnection connection, ILogger<BookingConsumer> lo
 	{
 		_consumerChannel?.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
 
-		var consumer = new EventingBasicConsumer(_consumerChannel);
+		var consumer = new AsyncEventingBasicConsumer(_consumerChannel);
 
 		consumer.Received += (model, args) =>
 		{
@@ -54,9 +54,25 @@ public class BookingConsumer(IConnection connection, ILogger<BookingConsumer> lo
 				// Requeue message for retry
 				_consumerChannel?.BasicNack(args.DeliveryTag, multiple: false, requeue: true);
 			}
+
+			return Task.CompletedTask;
 		};
 
 		_consumerChannel?.BasicConsume(queue: "email_notifications", autoAck: false, consumer: consumer);
+	}
+
+	public override Task StopAsync(CancellationToken cancellationToken)
+	{
+		if (_consumerChannel is { IsOpen: true })
+			_consumerChannel.Close();
+
+		return base.StopAsync(cancellationToken);
+	}
+
+	public override void Dispose()
+	{
+		_consumerChannel?.Dispose();
+		base.Dispose();
 	}
 
 	private static void DeclareTopology(IModel channel)

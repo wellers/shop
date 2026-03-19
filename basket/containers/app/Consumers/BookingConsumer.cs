@@ -1,4 +1,4 @@
-﻿using Basket.Messages;
+using Basket.Messages;
 using Basket.Services;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
@@ -25,9 +25,9 @@ public class BookingConsumer(IConnection connection, ILogger<BookingConsumer> lo
 	{
 		_consumerChannel?.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
 
-		var consumer = new EventingBasicConsumer(_consumerChannel);
+		var consumer = new AsyncEventingBasicConsumer(_consumerChannel);
 
-		consumer.Received += (model, args) =>
+		consumer.Received += async (model, args) =>
 		{
 			try
 			{
@@ -42,7 +42,8 @@ public class BookingConsumer(IConnection connection, ILogger<BookingConsumer> lo
 					return;
 				}
 
-				redisService.Database?.KeyDelete(bookingCompleted.BasketId.ToString());
+				if (redisService.Database != null)
+					await redisService.Database.KeyDeleteAsync(bookingCompleted.BasketId.ToString());
 
 				_consumerChannel?.BasicAck(args.DeliveryTag, multiple: false);
 
@@ -55,9 +56,25 @@ public class BookingConsumer(IConnection connection, ILogger<BookingConsumer> lo
 				// Requeue message for retry
 				_consumerChannel?.BasicNack(args.DeliveryTag, multiple: false, requeue: true);
 			}
+
+			await Task.CompletedTask;
 		};
 
 		_consumerChannel?.BasicConsume(queue: "bookings_completed", autoAck: false, consumer: consumer);
+	}
+
+	public override Task StopAsync(CancellationToken cancellationToken)
+	{
+		if (_consumerChannel is { IsOpen: true })
+			_consumerChannel.Close();
+
+		return base.StopAsync(cancellationToken);
+	}
+
+	public override void Dispose()
+	{
+		_consumerChannel?.Dispose();
+		base.Dispose();
 	}
 
 	private static void DeclareTopology(IModel channel)

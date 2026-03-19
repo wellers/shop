@@ -1,4 +1,4 @@
-﻿using Catalog.Database;
+using Catalog.Database;
 using Grpc.Net.Client;
 using Microsoft.EntityFrameworkCore;
 using Movies;
@@ -29,19 +29,24 @@ namespace Catalog.Jobs
 				Console.WriteLine("GetMoviesUrl is not set.");
 				return;
 			}
-			
-			var httpHandler = new HttpClientHandler
-			{
-				ServerCertificateCustomValidationCallback =
-					HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-			};  
 
-			AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
-			
+			var allowInsecureGrpc = configuration.GetValue<bool>("AllowInsecureGrpc");
+			HttpClientHandler? httpHandler = null;
+
+			if (allowInsecureGrpc)
+			{
+				httpHandler = new HttpClientHandler
+				{
+					ServerCertificateCustomValidationCallback =
+						HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+				};
+				AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+			}
+
 			using var channel = GrpcChannel.ForAddress(getMoviesUrl, new GrpcChannelOptions { HttpHandler = httpHandler });
 			var client = new MovieService.MovieServiceClient(channel);
 
-			var response = client.GetMovies(new GetMoviesRequest(), cancellationToken: cancellationToken);
+			var response = await client.GetMoviesAsync(new GetMoviesRequest(), cancellationToken: cancellationToken);
 
 			if (response == null)
 			{
@@ -59,6 +64,7 @@ namespace Catalog.Jobs
 			var existingMovies = await context.Movies.ToListAsync(cancellationToken: cancellationToken);
 
 			var processedMovieIds = new List<int>();
+			var hasChanges = false;
 			foreach (var movie in existingMovies)
 			{
 				if (moviesById.TryGetValue(movie.Id, out var toUpdate))
@@ -66,13 +72,12 @@ namespace Catalog.Jobs
 					movie.Title = toUpdate.Title;
 					movie.Price = toUpdate.Price;
 					processedMovieIds.Add(movie.Id);
-					await context.SaveChangesAsync(cancellationToken);
+					hasChanges = true;
 				}
 				else
 				{
-					var toRemove = await context.Movies.SingleAsync(m => m.Id == movie.Id, cancellationToken: cancellationToken);
-					context.Movies.Remove(toRemove);
-					await context.SaveChangesAsync(cancellationToken);
+					context.Movies.Remove(movie);
+					hasChanges = true;
 					continue;
 				}
 			}
@@ -85,6 +90,11 @@ namespace Catalog.Jobs
 			if (toAdd.Any())
 			{
 				await context.Movies.AddRangeAsync(toAdd, cancellationToken);
+				hasChanges = true;
+			}
+
+			if (hasChanges)
+			{
 				await context.SaveChangesAsync(cancellationToken);
 			}
 

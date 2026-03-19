@@ -1,8 +1,9 @@
-﻿using Catalog.Database;
+using Catalog.Database;
 using Catalog.Jobs;
 using Catalog.Models;
 
 var builder = WebApplication.CreateBuilder(args);
+var startedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
 builder.Configuration.AddJsonFile("appsettings.json").Build();
 
@@ -35,7 +36,7 @@ var app = builder.Build();
 
 app.MapGraphQL();
 
-app.MapGet("/status", () => Results.Json(new { start = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds() }));
+app.MapGet("/status", () => Results.Json(new { start = startedAt, now = DateTimeOffset.UtcNow.ToUnixTimeSeconds() }));
 
 app.MapGet("/sync", async (IServiceProvider serviceProvider) =>
 {

@@ -1,4 +1,4 @@
-﻿using Booking.Dtos;
+using Booking.Dtos;
 using Booking.Messages;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
@@ -7,7 +7,7 @@ using System.Text;
 
 namespace Booking.Consumers;
 
-public class BookingConsumer(IConnection connection, ILogger<BookingConsumer> logger, PostgresContext context) : BackgroundService, IDisposable
+public class BookingConsumer(IConnection connection, ILogger<BookingConsumer> logger, IServiceScopeFactory scopeFactory) : BackgroundService, IDisposable
 {
 	private IModel? _consumerChannel;
 
@@ -25,7 +25,7 @@ public class BookingConsumer(IConnection connection, ILogger<BookingConsumer> lo
 	{
 		_consumerChannel?.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
 
-		var consumer = new EventingBasicConsumer(_consumerChannel);
+		var consumer = new AsyncEventingBasicConsumer(_consumerChannel);
 
 		consumer.Received += async (model, args) =>
 		{
@@ -48,6 +48,9 @@ public class BookingConsumer(IConnection connection, ILogger<BookingConsumer> lo
 					BookingDate = DateTime.UtcNow
 				};
 
+				using var scope = scopeFactory.CreateScope();
+				var context = scope.ServiceProvider.GetRequiredService<PostgresContext>();
+
 				await context.Bookings.AddAsync(booking);
 
 				var movies = context.Movies
@@ -59,11 +62,11 @@ public class BookingConsumer(IConnection connection, ILogger<BookingConsumer> lo
 					});
 
 				await context.BookingMovies.AddRangeAsync(movies);
-				await context.SaveChangesAsync();
-
-				_consumerChannel?.BasicAck(args.DeliveryTag, multiple: false);
+				await context.SaveChangesAsync();				
 
 				Publish(JsonConvert.SerializeObject(new { basketPurchase.BasketId, CompletedAt = DateTime.UtcNow }));
+
+				_consumerChannel?.BasicAck(args.DeliveryTag, multiple: false);
 
 				logger.LogInformation($"[x] Processed {message}");
 			}
@@ -77,6 +80,20 @@ public class BookingConsumer(IConnection connection, ILogger<BookingConsumer> lo
 		};
 
 		_consumerChannel.BasicConsume(queue: "bookings_started", autoAck: false, consumer: consumer);
+	}
+
+	public override Task StopAsync(CancellationToken cancellationToken)
+	{
+		if (_consumerChannel is { IsOpen: true })
+			_consumerChannel.Close();
+
+		return base.StopAsync(cancellationToken);
+	}
+
+	public override void Dispose()
+	{
+		_consumerChannel?.Dispose();
+		base.Dispose();
 	}
 
 	private static void DeclareTopology(IModel channel)
